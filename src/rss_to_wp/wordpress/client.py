@@ -342,7 +342,7 @@ class WordPressClient:
                 title=title[:50],
                 source_url=source_url[:60],
             )
-            return None  # Return None to indicate skip
+            return {"skipped": True, "reason": "duplicate"}  # Return skip marker, not None
         
         self._rate_limit()
 
