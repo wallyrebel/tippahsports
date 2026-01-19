@@ -1,0 +1,81 @@
+feeds:
+
+  # Blue Mountain Christian University Toppers (Sidearm Sports)
+  - name: "BMCU Men's Basketball"
+    url: "https://bmcusports.com/rss.aspx?path=mbball"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    enabled: true
+
+  - name: "BMCU Women's Basketball"
+    url: "https://bmcusports.com/rss.aspx?path=wbball"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    enabled: true
+
+  - name: "BMCU Baseball"
+    url: "https://bmcusports.com/rss.aspx?path=baseball"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    enabled: true
+
+  - name: "BMCU Softball"
+    url: "https://bmcusports.com/rss.aspx?path=softball"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    enabled: true
+
+  - name: "BMCU Men's Cross Country"
+    url: "https://bmcusports.com/rss.aspx?path=mxct"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    enabled: true
+
+  - name: "BMCU Women's Cross Country"
+    url: "https://bmcusports.com/rss.aspx?path=wxct"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    enabled: true
+
+  - name: "BMCU Men's Golf"
+    url: "https://bmcusports.com/rss.aspx?path=mgolf"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    enabled: true
+
+  - name: "BMCU Women's Golf"
+    url: "https://bmcusports.com/rss.aspx?path=wgolf"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    enabled: true
+
+  - name: "BMCU Men's Soccer"
+    url: "https://bmcusports.com/rss.aspx?path=msoc"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    enabled: true
+
+  - name: "BMCU Women's Soccer"
+    url: "https://bmcusports.com/rss.aspx?path=wsoc"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    enabled: true
+
+  - name: "BMCU Cheer"
+    url: "https://bmcusports.com/rss.aspx?path=cheer"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    enabled: true
+
+  - name: "BMCU Bowling"
+    url: "https://bmcusports.com/rss.aspx?path=bowling"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    enabled: true
+
+  - name: "BMCU Track & Field"
+    url: "https://bmcusports.com/rss.aspx?path=track"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    enabled: true
+
