@@ -545,5 +545,74 @@ def clear_db(
         typer.echo("Cancelled.")
 
 
+@app.command()
+def gameday(
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        "-n",
+        help="Process without publishing to WordPress.",
+    ),
+    config: Path = typer.Option(
+        Path("feeds.yaml"),
+        "--config",
+        "-c",
+        help="Path to feeds configuration file (for image resolution).",
+    ),
+) -> None:
+    """Generate a daily game day preview article.
+
+    Fetches today's games from the ICS calendar, rewrites them into an
+    AP-style article using AI, and publishes to WordPress. Each article
+    includes a link to the full schedule page.
+    """
+    from rss_to_wp.gameday import generate_gameday_article
+
+    # Load settings
+    try:
+        settings = get_app_settings()
+    except Exception as e:
+        typer.echo(f"Error loading settings: {e}", err=True)
+        typer.echo("Make sure you have a .env file with required variables.", err=True)
+        raise typer.Exit(1)
+
+    # Setup logging
+    logger = setup_logging(
+        level=settings.log_level,
+        log_file=settings.log_file,
+    )
+
+    logger.info(
+        "gameday_starting",
+        version=__version__,
+        dry_run=dry_run,
+    )
+
+    try:
+        result = generate_gameday_article(
+            settings=settings,
+            dry_run=dry_run,
+            config_path=str(config),
+        )
+
+        if result:
+            if result.get("link") and result["link"] != "dry-run://not-published":
+                logger.info("gameday_success", url=result.get("link"))
+                typer.echo(f"✅ Game day article published: {result.get('link')}")
+            elif dry_run:
+                typer.echo("✅ Dry run complete - article would be published.")
+            else:
+                logger.info("gameday_skipped")
+                typer.echo("ℹ️ Game day article was skipped (already published or no games).")
+        else:
+            typer.echo("ℹ️ No games found for today - no article generated.")
+
+    except Exception as e:
+        logger.error("gameday_error", error=str(e))
+        typer.echo(f"❌ Error generating game day article: {e}", err=True)
+        raise typer.Exit(1)
+
+
 if __name__ == "__main__":
     app()
+
