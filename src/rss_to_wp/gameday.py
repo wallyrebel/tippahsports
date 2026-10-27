@@ -7,7 +7,7 @@ Every article includes a link to the full schedule page.
 
 from __future__ import annotations
 
-from rss_to_wp.rewriter.model_options import chat_model_params
+from rss_to_wp.rewriter.model_options import create_model_completion
 
 from datetime import date
 from pathlib import Path
@@ -341,7 +341,7 @@ IMPORTANT:
         if "o1" not in rewriter.model.lower():
             api_params["response_format"] = {"type": "json_object"}
 
-        response = rewriter.client.chat.completions.create(**chat_model_params(api_params))
+        response = create_model_completion(rewriter.client, api_params)
         response_text = response.choices[0].message.content
 
         result = rewriter._parse_response(response_text)
