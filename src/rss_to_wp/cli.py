@@ -25,6 +25,7 @@ from rss_to_wp.feeds import (
     parse_feed,
     pick_entries,
 )
+from rss_to_wp.feeds.associations import CONFERENCE, conference_report
 from rss_to_wp.images import download_image, find_fallback_image, find_rss_image, scrape_image_from_url
 from rss_to_wp.content_quality import article_problem, source_hold_problem, source_problem
 from rss_to_wp.rewriter import OpenAIRewriter
@@ -367,7 +368,7 @@ def process_entry(
     if problem:
         logger.warning("entry_source_held", title=title[:50], reason=problem)
         return None
-    content = get_entry_content(entry)
+    content = conference_report(link, title) if feed_config.url == CONFERENCE else get_entry_content(entry)
 
     logger.info("processing_entry", title=title[:50])
 

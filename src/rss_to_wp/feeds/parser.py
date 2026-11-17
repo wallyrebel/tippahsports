@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 from feedparser.exceptions import CharacterEncodingOverride, NonXMLContentType
 
 from rss_to_wp.content_quality import content_problem, plain_text
+from rss_to_wp.feeds.associations import local_releases
 from rss_to_wp.utils import get_logger
 
 logger = get_logger("feeds.parser")
@@ -56,6 +57,7 @@ def parse_feed(url: str) -> Optional[dict[str, Any]]:
             )
             # Continue anyway - feedparser often recovers
 
+        feed = local_releases(url, feed)
         if not feed.entries:
             logger.info("feed_empty", url=url)
             return feed

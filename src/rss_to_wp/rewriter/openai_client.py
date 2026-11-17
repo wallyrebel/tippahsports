@@ -32,6 +32,7 @@ RULES:
 10. Use proper AP style for numbers, dates, titles, etc.
 11. Empty input, site navigation, video footer text, or access errors are not stories. Return null for headline and body when no article can be written.
 12. Preserve match results and set scores exactly. A four-set volleyball win is not a sweep. Do not combine conflicting or historical match details.
+13. Lead a multi-school release with the Tippah County school or Blue Mountain Christian athlete when the source supports it. Name the awarding body and distinguish a national NAIA honor from an SSAC conference honor. Cover the local performance with its specific sourced figures. Never transfer another athlete's statistics to the local player. If the local school is incidental and the source supplies no news about it, return null for the headline and body.
 
 OUTPUT FORMAT:
 You must respond with valid JSON in this exact format:

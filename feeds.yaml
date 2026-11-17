@@ -1,5 +1,17 @@
 feeds:
 
+  - name: "MHSAA releases naming a Tippah County school"
+    url: "https://www.misshsaa.com/feed/"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    max_per_run: 3
+
+  - name: "National honors and bids for Blue Mountain Christian"
+    url: "https://ssacsports.com/rss.aspx"
+    category: "Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    max_per_run: 3
+
   # Blue Mountain Christian University Toppers (Sidearm Sports)
   - name: "BMCU Men's Basketball"
     url: "https://bmcusports.com/rss.aspx?path=mbball"
