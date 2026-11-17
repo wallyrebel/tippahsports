@@ -261,7 +261,7 @@ def process_feed(
     # Filter entries
     entries = pick_entries(
         entries=feed.entries,
-        max_count=feed_config.max_per_run,
+        max_count=len(feed.entries),
         hours_window=hours,
         timezone=settings.timezone,
     )
@@ -272,7 +272,10 @@ def process_feed(
 
     logger.info("entries_to_process", name=feed_config.name, count=len(entries))
 
+    attempts = 0
     for entry in entries:
+        if attempts >= feed_config.max_per_run:
+            break
         try:
             # Generate unique key
             entry_key = generate_entry_key(entry, feed_config.url)
@@ -288,6 +291,7 @@ def process_feed(
                 continue
 
             # Process entry
+            attempts += 1
             result = process_entry(
                 entry=entry,
                 feed_config=feed_config,
