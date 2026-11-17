@@ -68,35 +68,25 @@ class WordPressClient:
         """
         return f"{self.base_url}/wp-json/wp/v2/{endpoint}"
 
-    def check_duplicate_by_slug(self, slug: str) -> bool:
-        """Check if a post with this slug already exists.
-
-        Args:
-            slug: Post slug to check.
-
-        Returns:
-            True if exists, False otherwise.
-        """
+    def find_post_by_slug(self, slug: str) -> Optional[dict]:
+        """Reconcile a publication identity across editable post statuses."""
         self._rate_limit()
+        response = self.session.get(self._api_url("posts"),
+                                    params={"slug": slug, "status": "any", "context": "edit",
+                                            "_fields": "id,slug,status,link"}, timeout=(10, 30))
+        response.raise_for_status()
+        posts = response.json()
+        if not isinstance(posts, list) or len(posts) > 1:
+            raise ValueError("Ambiguous WordPress edition lookup")
+        if not posts:
+            return None
+        post = posts[0]
+        if post.get("slug") != slug or not post.get("id") or not post.get("status"):
+            raise ValueError("WordPress returned an unexpected edition")
+        return post
 
-        try:
-            response = self.session.get(
-                self._api_url("posts"),
-                params={"slug": slug, "status": "any"},
-                timeout=(10, 30),
-            )
-            response.raise_for_status()
-            posts = response.json()
-
-            if posts:
-                logger.debug("duplicate_found_by_slug", slug=slug, post_id=posts[0].get("id"))
-                return True
-
-            return False
-
-        except Exception as e:
-            logger.warning("duplicate_check_error", slug=slug, error=str(e))
-            return False  # Assume no duplicate on error
+    def check_duplicate_by_slug(self, slug: str) -> bool:
+        return self.find_post_by_slug(slug) is not None
 
     def check_duplicate_by_source_url(self, source_url: str) -> bool:
         """Check if a post containing this source URL already exists.
@@ -319,6 +309,7 @@ class WordPressClient:
         featured_media_id: Optional[int] = None,
         source_url: Optional[str] = None,
         status: Optional[str] = None,
+        slug: Optional[str] = None,
     ) -> Optional[dict]:
         """Create a new WordPress post.
 
@@ -357,6 +348,8 @@ class WordPressClient:
             "status": status or self.default_status,
         }
 
+        if slug:
+            post_data["slug"] = slug
         if excerpt:
             post_data["excerpt"] = excerpt
 

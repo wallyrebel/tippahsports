@@ -620,7 +620,9 @@ def gameday(
         )
 
         if result:
-            if result.get("link") and result["link"] != "dry-run://not-published":
+            if result.get("skipped"):
+                typer.echo("Game-day edition already exists.")
+            elif result.get("link") and result["link"] != "dry-run://not-published":
                 logger.info("gameday_success", url=result.get("link"))
                 typer.echo(f"✅ Game day article published: {result.get('link')}")
             elif dry_run:

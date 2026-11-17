@@ -71,8 +71,9 @@ def parse_ics_events(ics_text: str) -> list[dict]:
     try:
         cal = Calendar.from_ical(ics_text)
     except Exception as e:
-        logger.error("ics_parse_error", error=str(e))
-        return events
+        raise ValueError("Game-day calendar could not be parsed") from e
+    if cal.name != "VCALENDAR":
+        raise ValueError("Expected a VCALENDAR game schedule")
 
     for component in cal.walk():
         if component.name != "VEVENT":
@@ -115,7 +116,7 @@ def _parse_vevent(component) -> Optional[dict]:
     # Convert to pendulum for timezone handling
     if hasattr(dt, "hour"):
         # It's a datetime
-        start_dt = pendulum.instance(dt, tz="America/Chicago")
+        start_dt = pendulum.instance(dt, tz="America/Chicago").in_timezone("America/Chicago")
     else:
         # It's a date-only
         start_dt = pendulum.parse(str(dt), tz="America/Chicago")
@@ -143,7 +144,7 @@ def _parse_vevent(component) -> Optional[dict]:
     emoji = _get_sport_emoji(sport, summary)
 
     # Format time
-    time_str = start_dt.format("h:mm A")
+    time_str = start_dt.format("h:mm A") if hasattr(dt, "hour") else "Time not listed"
 
     return {
         "sport": sport,
@@ -265,8 +266,7 @@ def get_todays_games(
     # Fetch ICS
     ics_text = fetch_ics_calendar(ics_url)
     if not ics_text:
-        logger.warning("no_ics_data")
-        return []
+        raise RuntimeError("Game-day calendar unavailable")
 
     # Parse all events
     all_events = parse_ics_events(ics_text)

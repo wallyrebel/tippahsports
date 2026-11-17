@@ -2,8 +2,10 @@ name: Game Day Article Generator
 
 on:
   schedule:
-    # Run at 7:00 AM CST (12:00 UTC) every day
-    - cron: '0 12 * * *'
+    - cron: '0 7 * * *'
+      timezone: America/Chicago
+    - cron: '35 8 * * *'
+      timezone: America/Chicago
   
   # Allow manual trigger
   workflow_dispatch:
@@ -19,10 +21,17 @@ on:
 
 env:
   PYTHON_VERSION: '3.11'
+  DRY_RUN: ${{ inputs.dry_run || 'false' }}
+
+# Both publishers restore and save the same SQLite publication history.
+concurrency:
+  group: tippahsports-rss-publisher
+  cancel-in-progress: false
 
 jobs:
   gameday-article:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     
     steps:
       - name: Checkout repository
@@ -47,7 +56,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: data/processed.db
-          key: processed-db-${{ github.run_id }}
+          key: processed-db-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             processed-db-
 
@@ -76,20 +85,18 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
         run: |
-          ARGS=""
-          
-          # Add dry-run flag if specified
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            ARGS="$ARGS --dry-run"
+          args=()
+          if [[ "$DRY_RUN" == true ]]; then
+            args+=(--dry-run)
           fi
-          
-          python -m rss_to_wp gameday $ARGS
+          python -m rss_to_wp gameday "${args[@]}"
 
       - name: Save database to cache
+        if: success() && env.DRY_RUN != 'true' && hashFiles('data/processed.db') != ''
         uses: actions/cache/save@v4
         with:
           path: data/processed.db
-          key: processed-db-${{ github.run_id }}
+          key: processed-db-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Summary
         if: always()
@@ -97,5 +104,4 @@ jobs:
           echo "## Game Day Article Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Dry Run**: ${{ github.event.inputs.dry_run || 'false' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Timezone**: America/Chicago (CST)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Schedule**: Daily at 7:00 AM CST" >> $GITHUB_STEP_SUMMARY
+          echo "- **Schedule**: Daily at 7:00 and 8:35 AM Central" >> $GITHUB_STEP_SUMMARY

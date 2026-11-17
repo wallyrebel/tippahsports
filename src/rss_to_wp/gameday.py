@@ -185,9 +185,22 @@ def generate_gameday_article(
         logger.info("gameday_already_published", date=str(target_date))
         return None
 
+    headline = generate_headline(target_date)
+    # Matches the WordPress slug of editions published before this check.
+    edition_slug = headline.lower().replace(",", "").replace(" ", "-")
+    wp_client = WordPressClient(base_url=settings.wordpress_base_url,
+                                username=settings.wordpress_username,
+                                password=settings.wordpress_app_password,
+                                default_status=settings.wordpress_post_status)
+    existing = wp_client.find_post_by_slug(edition_slug)
+    if existing:
+        if existing["status"] != "publish":
+            raise RuntimeError(f"Existing game-day edition is {existing['status']}. Review its status.")
+        logger.info("gameday_already_published", post_id=existing["id"], url=existing.get("link"))
+        return {"skipped": True, "reason": "already published"}
+
     # 3. Build game summary text for the rewriter
     summary_text = build_games_summary(games, target_date)
-    headline = generate_headline(target_date)
 
     logger.info(
         "gameday_summary_built",
@@ -205,8 +218,7 @@ def generate_gameday_article(
     rewritten = _rewrite_gameday(rewriter, summary_text, headline)
 
     if not rewritten:
-        logger.error("gameday_rewrite_failed")
-        return None
+        raise RuntimeError("Game-day article generation failed")
 
     # 5. Ensure headline is exactly what we want (override AI)
     rewritten["headline"] = headline
@@ -235,13 +247,6 @@ def generate_gameday_article(
         return {"id": 0, "link": "dry-run://not-published"}
 
     # 8. Publish to WordPress
-    wp_client = WordPressClient(
-        base_url=settings.wordpress_base_url,
-        username=settings.wordpress_username,
-        password=settings.wordpress_app_password,
-        default_status=settings.wordpress_post_status,
-    )
-
     # Upload featured image (Tippah Sports logo)
     featured_media_id = _upload_logo(wp_client, config_path)
 
@@ -265,26 +270,17 @@ def generate_gameday_article(
         tag_ids=tag_ids,
         featured_media_id=featured_media_id,
         source_url=None,  # Original content, no source attribution
+        slug=edition_slug,
     )
 
-    if post and not post.get("skipped"):
-        # Mark as processed
-        dedupe_store.mark_processed(
-            entry_key=dedupe_key,
-            feed_url="gameday-preview",
-            entry_title=headline,
-            entry_link=post.get("link", ""),
-            wp_post_id=post.get("id"),
-            wp_post_url=post.get("link"),
-        )
-
-        logger.info(
-            "gameday_published",
-            post_id=post.get("id"),
-            url=post.get("link"),
-            headline=headline,
-        )
-
+    if (not post or not post.get("id") or not post.get("link")
+            or post.get("status") != settings.wordpress_post_status or post.get("slug") != edition_slug):
+        raise RuntimeError("WordPress did not confirm the expected game-day edition. Reconcile before retrying.")
+    dedupe_store.mark_processed(
+        entry_key=dedupe_key, feed_url="gameday-preview", entry_title=headline,
+        entry_link=post["link"], wp_post_id=post["id"], wp_post_url=post["link"],
+    )
+    logger.info("gameday_published", post_id=post["id"], url=post["link"], headline=headline)
     return post
 
 

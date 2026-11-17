@@ -58,7 +58,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: data/processed.db
-          key: processed-db-${{ github.run_id }}
+          key: processed-db-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             processed-db-
 
@@ -101,7 +101,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: data/processed.db
-          key: processed-db-${{ github.run_id }}
+          key: processed-db-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Summary
         if: always()
