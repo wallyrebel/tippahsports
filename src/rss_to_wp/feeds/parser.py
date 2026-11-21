@@ -13,6 +13,8 @@ from feedparser.exceptions import CharacterEncodingOverride, NonXMLContentType
 
 from rss_to_wp.content_quality import content_problem, plain_text
 from rss_to_wp.feeds.associations import local_releases
+from rss_to_wp.feeds.calendar_parser import ICS_CALENDAR_URL
+from rss_to_wp.feeds.local_finals import local_finals
 from rss_to_wp.utils import get_logger
 
 logger = get_logger("feeds.parser")
@@ -30,6 +32,8 @@ def parse_feed(url: str) -> Optional[dict[str, Any]]:
     logger.info("parsing_feed", url=url)
 
     try:
+        if url == ICS_CALENDAR_URL:
+            return local_finals()
         response = requests.get(url, timeout=(10, 30),
                                 headers={"User-Agent": feedparser.USER_AGENT})
         response.raise_for_status()

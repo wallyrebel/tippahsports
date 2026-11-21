@@ -426,7 +426,7 @@ def process_entry(
                 image_url = None
 
     # Try scraping image from source URL if RSS image not found
-    if not image_url and link:
+    if not image_result and not image_url and link:
         scraped_image_url = scrape_image_from_url(link)
         if scraped_image_url:
             logger.info("using_scraped_image", url=scraped_image_url)

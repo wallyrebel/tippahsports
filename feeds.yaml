@@ -1,4 +1,11 @@
 feeds:
+  - name: "Tippah County verified varsity basketball finals"
+    url: "https://wallyrebel.github.io/autoschedule/schedules.ics"
+    category: "Tippah County Sports"
+    default_image: "assets/tippah_sports_logo.jpg"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    use_original_title: true
+    max_per_run: 5
 
   - name: "MHSAA releases naming a Tippah County school"
     url: "https://www.misshsaa.com/feed/"
