@@ -28,5 +28,8 @@ def test_final_needs_the_same_result_on_the_local_team_schedule(monkeypatch):
     monkeypatch.setattr(finals, "get", Mock(return_value=html))
     monkeypatch.setattr(finals, "recent_results", Mock(return_value=(("L",60,42),[])))
     assert finals.verified_entry(EVENT) is None
-    monkeypatch.setattr(finals, "recent_results", Mock(return_value=(("W",60,42),[])))
-    assert "Walnut defeats Ingomar 60–42" in finals.verified_entry(EVENT).title
+    def schedule(path, *args):
+        won = "walnut" in path
+        return (("W" if won else "L",60,42), [(date(2026,11,17),"Myrtle","W",42,33)])
+    monkeypatch.setattr(finals, "recent_results", schedule)
+    assert "Walnut girls beat Ingomar 60–42" in finals.verified_entry(EVENT).title

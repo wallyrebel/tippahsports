@@ -1,6 +1,7 @@
 """Use confirmed scoreboards from the newsroom's varsity basketball calendar."""
 
 from datetime import datetime, timedelta
+from html import escape
 import re
 from urllib.parse import urljoin
 from zoneinfo import ZoneInfo
@@ -46,7 +47,10 @@ def recent_results(team_link, game, day):
         if target == game:
             current = (result[1], max(int(result[2]), int(result[3])), min(int(result[2]), int(result[3])))
         elif day - timedelta(days=15) <= played < day:
-            opponent = re.sub(r"^(?:vs\.?|@)\s*", "", cells[1].a.get_text(" ", strip=True))
+            label = cells[1].select_one("a .name")
+            if label is None:
+                continue
+            opponent = label.get_text(" ", strip=True)
             results.append((played, opponent, result[1], max(int(result[2]),int(result[3])), min(int(result[2]),int(result[3]))))
     return current, sorted(set(results), reverse=True)[:2]
 
@@ -85,25 +89,43 @@ def verified_entry(event):
         return None
     winner, other = sorted(teams, key=lambda t: t[1], reverse=True)
     league = "girls" if match[1] else "boys"
-    title = f"{winner[0]} defeats {other[0]} {winner[1]}–{other[1]} in {league} basketball"
+    if other[3] and not winner[3]:
+        title = f"{other[0]} {league} fall to {winner[0]} {winner[1]}–{other[1]}"
+    else:
+        title = f"{winner[0]} {league} beat {other[0]} {winner[1]}–{other[1]}"
     day = event["date"]
-    evidence = [f"In varsity {league} basketball on {day.strftime('%B %d, %Y')}, {winner[0]} won {winner[1]} to {other[1]} against {other[0]}, according to the final MaxPreps team box score."]
+    lead = f"{winner[0]} beat {other[0]} {winner[1]}–{other[1]} in {league} varsity basketball {day.strftime('%A, %B %d').replace(' 0',' ')}, according to the teams’ final box score on MaxPreps."
+    paragraphs = [lead]
+    quarter_lines = {}
     for row, (name, score, path, local) in zip(rows, teams):
         numbers = [node.get_text(strip=True) for node in row.select("td:not(.final-score)")]
         if len(numbers) == len(headings)-2 and all(value.isdigit() for value in numbers):
             if sum(map(int,numbers)) != score:
                 raise ValueError("Period scores disagree with the final")
-            evidence.append(f"{name} scoring by period: " + ", ".join(f"{label} {value}" for label,value in zip(headings[1:-1],numbers)) + ".")
-        if local:
-            current, past = recent_results(path, url, day)
-            if current != ("W" if name == winner[0] else "L", winner[1], other[1]):
+            quarter_lines[name] = list(map(int,numbers))
+        current, past = recent_results(path, url, day)
+        if current != ("W" if name == winner[0] else "L", winner[1], other[1]):
+            if local or current is not None:
                 return None
-            for played, opponent, outcome, high, low in past:
+            continue
+        if past:
+            previous = []
+            for played, opponent, outcome, high, low in reversed(past):
                 verb = "beat" if outcome == "W" else "lost to"
-                evidence.append(f"On {played.strftime('%B %d')}, {name} {verb} {opponent} {high}–{low}, according to the team's varsity {league} schedule.")
-    if len(evidence) < 3:
+                previous.append(f"{verb} {opponent} {high}–{low} on {played.strftime('%B %d').replace(' 0',' ')}")
+            paragraphs.append(f"{name} " + " and ".join(previous) + f" before {day.strftime('%A')}’s game.")
+    if len(quarter_lines) == 2 and headings[1:5] == ["Q1","Q2","Q3","Q4"]:
+        w, o = quarter_lines[winner[0]], quarter_lines[other[0]]
+        first, second = sum(w[:2]), sum(o[:2])
+        halftime = (f"The teams went to halftime tied at {first}." if first == second else
+                    f"{winner[0] if first > second else other[0]} led {max(first,second)}–{min(first,second)} at halftime.")
+        quarters = f"The first quarter ended with {winner[0]} at {w[0]} and {other[0]} at {o[0]}. {halftime} In the fourth quarter {winner[0]} scored {w[3]} points and {other[0]} scored {o[3]}."
+        paragraphs.insert(1, quarters)
+    if len(paragraphs) < 3:
         return None
-    return FeedParserDict(id=url, title=title, link=url, summary=" ".join(evidence), published=event["start_dt"].isoformat())
+    body = "".join(f"<p>{escape(p)}</p>" for p in paragraphs)
+    return FeedParserDict(id=url, title=title, link=url, summary=body, score_brief=body,
+                          published=event["start_dt"].isoformat())
 
 
 def local_finals():

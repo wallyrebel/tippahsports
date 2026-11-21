@@ -26,6 +26,7 @@ from rss_to_wp.feeds import (
     pick_entries,
 )
 from rss_to_wp.feeds.associations import CONFERENCE, conference_report
+from rss_to_wp.feeds.calendar_parser import ICS_CALENDAR_URL
 from rss_to_wp.images import download_image, find_fallback_image, find_rss_image, scrape_image_from_url
 from rss_to_wp.content_quality import article_problem, source_hold_problem, source_problem
 from rss_to_wp.rewriter import OpenAIRewriter
@@ -388,6 +389,13 @@ def process_entry(
         logger.error("rewrite_failed", title=title[:50])
         return None
 
+    # A box-score brief includes the verified schedule context for both schools.
+    # Keep that reporting intact when the rewrite compresses it to a score alert.
+    if (feed_config.url == ICS_CALENDAR_URL and entry.get("score_brief")
+            and not article_problem(rewritten, content, title)):
+        rewritten["body"] = entry["score_brief"]
+        rewritten["headline"] = title
+        rewritten["excerpt"] = title
     # Validate before any media, taxonomy, or post writes, including test/custom rewriters.
     problem = article_problem(rewritten, content, title)
     if problem:
