@@ -5,8 +5,10 @@ from urllib.parse import urlsplit
 
 import requests
 from bs4 import BeautifulSoup
+from feedparser import FeedParserDict
 
 from rss_to_wp.content_quality import plain_text
+from rss_to_wp.feeds.golf import local_golf
 
 STATE = "https://www.misshsaa.com/feed/"
 CONFERENCE = "https://ssacsports.com/rss.aspx"
@@ -50,6 +52,14 @@ def local_releases(feed_url, feed):
         item["link"] = link._replace(scheme="https", fragment="").geturl()
         item["id"] = identity
         entries.setdefault(identity, item)
+    if feed_url == STATE:
+        # Keep the existing identity for a local headline that was already processed.
+        other_titles = [item for item in feed.entries if not HIGH_SCHOOLS.search(plain_text(item.get("title", "")))]
+        cards = FeedParserDict(feed=feed.feed, entries=other_titles)
+        schools = {"Pine Grove Panthers": "Pine Grove", "Ripley Tigers": "Ripley", "Falkner Eagles": "Falkner",
+                   "Walnut Wildcats": "Walnut", "Blue Mountain Cougars": "Blue Mountain"}
+        for result in local_golf(cards, schools).entries:
+            entries.setdefault(result.link, result)
     feed.entries = list(entries.values())
     return feed
 
