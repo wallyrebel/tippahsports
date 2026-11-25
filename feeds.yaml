@@ -1,4 +1,10 @@
 feeds:
+  - name: "Tippah County Sports verified local records"
+    url: "https://raw.githubusercontent.com/wallyrebel/MississippiNewsGroup/main/data/public-records/tippahsports.xml"
+    category: "Tippah County Sports"
+    fallback_image: "assets/tippah_sports_logo.jpg"
+    max_per_run: 3
+
   - name: "Tippah County verified varsity basketball finals"
     url: "https://wallyrebel.github.io/autoschedule/schedules.ics"
     category: "Tippah County Sports"
