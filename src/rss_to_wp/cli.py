@@ -378,6 +378,9 @@ def process_entry(
         logger.warning("entry_content_rejected", title=title[:50], reason=problem)
         return None
 
+    if link and not dry_run and wp_client and wp_client.check_duplicate_by_source_url(link):
+        return {"skipped": True, "reason": "duplicate"}
+
     # Rewrite with OpenAI
     rewritten = rewriter.rewrite(
         content=content,
@@ -485,11 +488,13 @@ def process_entry(
 
     # Upload image to WordPress
     if not dry_run and wp_client and image_result:
-        featured_media_id = wp_client.upload_media(
-            image_bytes=image_bytes,
-            filename=filename,
-            alt_text=image_alt,
-        )
+        featured_media_id = wp_client.find_hosted_media(image_url) if image_url else None
+        if not featured_media_id:
+            featured_media_id = wp_client.upload_media(
+                image_bytes=image_bytes,
+                filename=filename,
+                alt_text=image_alt,
+            )
 
     # Get/create category
     category_id = None

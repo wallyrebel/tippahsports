@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import re
 import time
+from pathlib import PurePosixPath
 from typing import Optional
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 import requests
+from bs4 import BeautifulSoup
 
 from rss_to_wp.utils import get_logger
 from rss_to_wp.wordpress.media import wp_upload_media
@@ -102,16 +104,16 @@ class WordPressClient:
         if not source_url:
             return False
 
-        self._rate_limit()
-
-        try:
-            # Search for posts containing the source URL
+        for page in range(1, 21):
+            self._rate_limit()
             response = self.session.get(
                 self._api_url("posts"),
                 params={
                     "search": source_url,
                     "status": "any",
-                    "per_page": 5,
+                    "per_page": 100,
+                    "page": page,
+                    "_fields": "id,title,content",
                 },
                 timeout=(10, 30),
             )
@@ -121,7 +123,12 @@ class WordPressClient:
             # Check if any post actually contains this exact URL
             for post in posts:
                 content = post.get("content", {}).get("rendered", "")
-                if source_url in content:
+                soup = BeautifulSoup(content, "html.parser")
+                hrefs = [a["href"] for a in soup.select("a[href]")]
+                urls = re.findall(r"""https?://[^\s<>"']+""", soup.get_text(" ", strip=True))
+                if source_url in hrefs or any(
+                    url == source_url or url.rstrip(".,;:!?)") == source_url for url in urls
+                ):
                     logger.info(
                         "duplicate_found_by_source_url",
                         source_url=source_url[:60],
@@ -130,11 +137,24 @@ class WordPressClient:
                     )
                     return True
 
-            return False
+            if page >= int(response.headers.get("X-WP-TotalPages", 1)):
+                return False
+        raise ValueError("Source duplicate lookup exceeded its page limit")
 
-        except Exception as e:
-            logger.warning("source_url_check_error", source_url=source_url[:60], error=str(e))
-            return False  # Assume no duplicate on error
+    def find_hosted_media(self, image_url: str) -> Optional[int]:
+        """Reuse a WordPress attachment only when its full public image URL matches."""
+        if not image_url.startswith(self.base_url + "/wp-content/uploads/"):
+            return None
+        slug = PurePosixPath(urlsplit(image_url).path).stem
+        self._rate_limit()
+        response = self.session.get(self._api_url("media"), params={
+            "slug": slug, "_fields": "id,source_url",
+        }, timeout=(10, 30))
+        response.raise_for_status()
+        matches = [row["id"] for row in response.json() if row.get("source_url") == image_url]
+        if len(matches) != 1:
+            raise ValueError("Unable to reconcile the existing WordPress image")
+        return matches[0]
 
     def get_or_create_category(self, name: str) -> Optional[int]:
         """Get category ID, creating it if it doesn't exist.
