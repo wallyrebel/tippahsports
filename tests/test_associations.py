@@ -4,6 +4,26 @@ import pytest
 
 from rss_to_wp.feeds.associations import CONFERENCE, NAMES, STATE, conference_report, local_releases
 from rss_to_wp.feeds.filter import generate_entry_key
+from rss_to_wp.feeds import parser
+
+
+def test_revision_only_pins_configured_public_records(monkeypatch):
+    from unittest.mock import Mock
+
+    fetch = Mock(return_value=SimpleNamespace(headers={}, url=parser.PUBLIC_RECORDS,
+        content=b'<rss version="2.0"><channel><title>Tippah Sports</title></channel></rss>',
+        raise_for_status=lambda: None))
+    monkeypatch.setattr(parser.requests, "get", fetch)
+    monkeypatch.setenv("PUBLIC_RECORDS_COMMIT", "a" * 40)
+    assert parser.parse_feed(parser.PUBLIC_RECORDS) is not None
+    assert fetch.call_args.args[0] == parser.PUBLIC_RECORDS.replace("/main/", "/" + "a" * 40 + "/")
+    other = "https://example.org/feed"
+    assert parser.parse_feed(other) is not None and fetch.call_args.args[0] == other
+    monkeypatch.setenv("PUBLIC_RECORDS_COMMIT", "other/branch")
+    assert parser.parse_feed(parser.PUBLIC_RECORDS) is None and fetch.call_count == 2
+    monkeypatch.delenv("PUBLIC_RECORDS_COMMIT")
+    assert parser.parse_feed(parser.PUBLIC_RECORDS) is not None
+    assert fetch.call_args.args[0] == parser.PUBLIC_RECORDS
 
 
 def association(source, items):

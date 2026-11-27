@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import re
 from typing import Any, Optional
 from urllib.parse import urlparse
@@ -18,6 +19,7 @@ from rss_to_wp.feeds.local_finals import local_finals
 from rss_to_wp.utils import get_logger
 
 logger = get_logger("feeds.parser")
+PUBLIC_RECORDS = "https://raw.githubusercontent.com/wallyrebel/MississippiNewsGroup/main/data/public-records/tippahsports.xml"
 
 
 def parse_feed(url: str) -> Optional[dict[str, Any]]:
@@ -34,7 +36,12 @@ def parse_feed(url: str) -> Optional[dict[str, Any]]:
     try:
         if url == ICS_CALENDAR_URL:
             return local_finals()
-        response = requests.get(url, timeout=(10, 30),
+        fetch_url = url
+        if url == PUBLIC_RECORDS and (revision := os.getenv("PUBLIC_RECORDS_COMMIT")):
+            if not re.fullmatch(r"[0-9a-f]{40}", revision):
+                raise ValueError("Public records commit must be a full Git commit SHA")
+            fetch_url = url.replace("/main/", f"/{revision}/")
+        response = requests.get(fetch_url, timeout=(10, 30),
                                 headers={"User-Agent": feedparser.USER_AGENT})
         response.raise_for_status()
         response_headers = {key.lower(): value for key, value in response.headers.items()}

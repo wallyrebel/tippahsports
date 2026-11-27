@@ -21,9 +21,14 @@ on:
         required: false
         default: ''
         type: string
+      public_records_commit:
+        description: 'Optional full MississippiNewsGroup commit for the Tippah Sports local records feed'
+        required: false
+        type: string
 
 env:
   SINGLE_FEED: ${{ github.event.inputs.single_feed }}
+  PUBLIC_RECORDS_COMMIT: ${{ github.event.inputs.public_records_commit }}
   DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
   PYTHON_VERSION: '3.11'
 
